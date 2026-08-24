@@ -1,10 +1,10 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <!-- Project properties -->
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>com.atomic.stackableitems</AssemblyName>
     <AssemblyTitle>StackableItems</AssemblyTitle>
-    <Version>0.1.0</Version>
+    <Version>0.1.2</Version>
   </PropertyGroup>
 
   <!-- ThunderPipe properties -->
@@ -27,6 +27,11 @@
   -->
   <ItemGroup>
     <ModFile Include="$(TargetPath)" Destination="plugins/" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="SaveBackups">
+      <HintPath>..\..\..\..\..\..\AppData\Roaming\r2modmanPlus-local\HowToFish\profiles\Default\BepInEx\plugins\hiccup-SaveBackups\SaveBackups.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
   <!-- Thunderstore package metadata -->

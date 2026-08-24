@@ -1,4 +1,5 @@
 using BepInEx;
+using BepInEx.Bootstrap;
 using BepInEx.Configuration;
 using BepInEx.Logging;
 using FishNet.Object.Synchronizing;
@@ -7,11 +8,13 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using UnityEngine;
 
 namespace StackableItems
 {
     [BepInAutoPlugin]
+    [BepInDependency("dazed.howtofish.savebackups", BepInDependency.DependencyFlags.SoftDependency)]
     public partial class Plugin : BaseUnityPlugin
     {
         internal static ManualLogSource Log { get; private set; } = null!;
@@ -26,6 +29,51 @@ namespace StackableItems
 
             harmony = new Harmony(Id);
             harmony.PatchAll();
+
+            if (ModInstalled("dazed.howtofish.savebackups"))
+            {
+                TryRegister();
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
+        private void TryRegister()
+        {
+            try
+            {
+                SaveBackups.Companions.Register(
+                    "stackableitems",
+                    "Stackable Items",
+                    saveName => Path.Combine(
+                        Paths.ConfigPath, "StackableItems", "Saves", Sanitise(saveName) + ".json"
+                    )
+                );
+            }
+            catch (Exception ex)
+            {
+                Log.LogError($"Failed to register with SaveBackups: {ex.Message}");
+            }
+        }
+
+        public bool ModInstalled(string GUID)
+        {
+            bool enabled = Chainloader.PluginInfos.ContainsKey(GUID);
+            if (!enabled) Log.LogWarning($"{GUID} is not enabled.");
+            return enabled;
+        }
+
+        private static string Sanitise(string id)
+        {
+            char[] array = id.ToCharArray();
+            for (int i = 0; i < array.Length; i++)
+            {
+                if (!char.IsLetterOrDigit(array[i]))
+                {
+                    array[i] = '_';
+                }
+            }
+
+            return new string(array).ToLowerInvariant();
         }
     }
 
@@ -284,7 +332,7 @@ namespace StackableItems
             catch { }
         }
 
-        private static string GetPath(string serverName)
+        public static string GetPath(string serverName)
         {
             string safeName = serverName;
             foreach (char invalidChar in Path.GetInvalidFileNameChars())
@@ -601,11 +649,12 @@ namespace StackableItems
                 if (totalCount > 1)
                 {
                     if (item.Mesh == null)
-                        __instance._itemText.text = $"{item.name} ({totalCount}x)";
+                    {
+                        __instance._itemText.text = $"{item.name} ({totalCount})";
+                    }
                     else
                     {
-                        __instance._itemText.text = $"{totalCount}x";
-                        __instance._itemText.color = Color.white;
+                        __instance._itemText.text = totalCount.ToString();
                     }
                     __instance._itemText.gameObject.SetActive(true);
                 }
@@ -613,6 +662,13 @@ namespace StackableItems
                 {
                     __instance._itemText.text = "";
                 }
+                __instance._itemText.verticalAlignment = TMPro.VerticalAlignmentOptions.Bottom;
+                __instance._itemText.horizontalAlignment = TMPro.HorizontalAlignmentOptions.Left;
+                __instance._itemText.fontSize = 16;
+                __instance._itemText.fontSizeMax = 18;
+                __instance._itemText.fontSizeMin = 10;
+                __instance._itemText.color = Color.white;
+                __instance._itemText.transform.localPosition = new Vector3(7.25f, 5, 0);
                 __instance._itemText.transform.SetAsLastSibling();
             }
         }

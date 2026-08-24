@@ -35,14 +35,14 @@ This **should** work in multiplayer, if not please find me in the [Modding Disco
 - Allows from 1 -> 100 items per slot, 64 is the default
 - Items are individually tracked, meaning the same item can have different properties even when stacked
 - Dropping item re-equips it
-- Saving
+- Saving and Backup support
 
 ## PLEASE READ!!
 
 I recommend making a backup of your save with [SaveBackups](https://thunderstore.io/c/how-to-fish/p/hiccup/SaveBackups/) before running with this.
 I am unsure how unstable this is in multiplayer since I couldn't test, but it works in single-player fine.
 
-Also note that backup items will not be recovered with that mod, since this mod doesn't use the base game save file.
+In verson 0.1.1 and onwards SaveBackups now has compatibility with this mod.
 
 ## Reporting bugs and questions
 
