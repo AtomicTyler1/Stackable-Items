@@ -1,3 +1,8 @@
+# v0.1.3 - Changes
+
+- You can no longer stack weapons. If you have stacked weapons in your old save then they will be sent to other slots.
+- WARNING: PLEASE HAVE ENOUGH EMPTY SLOTS OTHERWISE THEY MAY BE LOST.
+
 # v0.1.2 - Fix
 
 - Accidentally made it so the mod only works when SaveBackups is enabled.

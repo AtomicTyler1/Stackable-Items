@@ -126,7 +126,7 @@ namespace StackableItems
                 stacks[index] = list;
             }
 
-            if (list.Count < MaxStackSize - 1)
+            if (list.Count < MaxStackSize - 1 && item.Weapon == null)
             {
                 list.Add(item);
             }
@@ -417,7 +417,7 @@ namespace StackableItems
                         string slotName = slotItem.name.Replace("(Clone)", "").Trim();
                         int currentStack = 1 + StackManager.GetStackCount(__instance, b);
 
-                        if (slotName == targetName && currentStack < StackManager.MaxStackSize)
+                        if (slotName == targetName && currentStack < StackManager.MaxStackSize && slotItem.Weapon == null)
                         {
                             __result = b;
                             return false;
@@ -481,15 +481,44 @@ namespace StackableItems
                         clone.Creature.SetDrip();
                 }
 
-                clone.SetSyncedHolder(__instance._player, forced: true);
-                clone.PutInInventory();
+                bool isWeapon = clone.Weapon != null;
 
-                if (!stacks.TryGetValue(savedItem.InventorySlot, out var list))
+                if (isWeapon)
                 {
-                    list = new List<Item>();
-                    stacks[savedItem.InventorySlot] = list;
+                    clone.SetSyncedHolder(__instance._player, forced: true);
+
+                    byte? emptySlot = null;
+                    for (byte i = 0; i < __instance._items.Count; i++)
+                    {
+                        if (__instance._items[i] == null)
+                        {
+                            emptySlot = i;
+                            break;
+                        }
+                    }
+
+                    if (emptySlot.HasValue)
+                    {
+                        __instance._items[emptySlot.Value] = clone;
+                    }
+                    else
+                    {
+                        clone.Drop(false);
+                        Plugin.Log.LogWarning($"Dropped stacked weapon for {__instance._player.name} because inventory was full.");
+                    }
                 }
-                list.Add(clone);
+                else
+                {
+                    clone.SetSyncedHolder(__instance._player, forced: true);
+                    clone.PutInInventory();
+
+                    if (!stacks.TryGetValue(savedItem.InventorySlot, out var list))
+                    {
+                        list = new List<Item>();
+                        stacks[savedItem.InventorySlot] = list;
+                    }
+                    list.Add(clone);
+                }
             }
         }
 

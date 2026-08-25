@@ -27,7 +27,7 @@
 ## What does Stackable Items do?
 
 This makes it so you can use the same slot for the same item.
-
+You cannot stack weapons.
 This **should** work in multiplayer, if not please find me in the [Modding Discord](https://discord.gg/FxwbrHszJj). You may also report any bugs and issues there.
 
 ## Features
