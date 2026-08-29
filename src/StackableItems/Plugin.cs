@@ -109,10 +109,10 @@ namespace StackableItems
             return 0;
         }
 
-        public static void PushServerStack(PlayerInventory inv, byte index, Item item)
+        public static bool PushServerStack(PlayerInventory inv, byte index, Item item)
         {
             ulong steamID = GetSteamID(inv);
-            if (steamID == 0) return;
+            if (steamID == 0) return false;
 
             if (!ServerStacks.TryGetValue(steamID, out var stacks))
             {
@@ -129,7 +129,10 @@ namespace StackableItems
             if (list.Count < MaxStackSize - 1 && item.Weapon == null)
             {
                 list.Add(item);
+                return true;
             }
+
+            return false;
         }
 
         public static Item PopServerStack(PlayerInventory inv, byte index)
@@ -137,14 +140,50 @@ namespace StackableItems
             ulong steamID = GetSteamID(inv);
             if (steamID == 0) return null;
 
-            if (ServerStacks.TryGetValue(steamID, out var stacks) && stacks.TryGetValue(index, out var list) && list.Count > 0)
+            if (!ServerStacks.TryGetValue(steamID, out var stacks) || !stacks.TryGetValue(index, out var list))
+                return null;
+
+            while (list.Count > 0)
             {
                 Item item = list[list.Count - 1];
                 list.RemoveAt(list.Count - 1);
+
+                if (item == null || item.IsDeinitializing)
+                    continue;
+
+                if (item.SyncedHolder != inv._player)
+                {
+                    Plugin.Log.LogWarning($"Discarded a stacked '{item.name}' in slot {index} that no longer belongs to this player. It is loose in the world rather than in the stack.");
+                    continue;
+                }
+
                 return item;
             }
 
             return null;
+        }
+
+        public static void Forget(Item item)
+        {
+            if (item == null) return;
+
+            Purge(ServerStacks, item);
+            Purge(ClientStacks, item);
+        }
+
+        private static void Purge(Dictionary<ulong, Dictionary<byte, List<Item>>> source, Item item)
+        {
+            foreach (var stacks in source.Values)
+            {
+                foreach (var list in stacks.Values)
+                {
+                    for (int i = list.Count - 1; i >= 0; i--)
+                    {
+                        if (list[i] == item)
+                            list.RemoveAt(i);
+                    }
+                }
+            }
         }
 
         public static void SyncClientStack(PlayerInventory inv, byte index, Item newItem, Item oldItem)
@@ -348,58 +387,62 @@ namespace StackableItems
     {
         [HarmonyPrefix]
         [HarmonyPatch(typeof(PlayerInventory), nameof(PlayerInventory.ServerTryStoreHeldItem))]
-        public static void ServerTryStoreHeldItem_Prefix(Item item)
+        public static void ServerTryStoreHeldItem_Prefix(Item item, out Item __state)
         {
+            __state = StackManager.ItemBeingStored;
             StackManager.ItemBeingStored = item;
         }
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(PlayerInventory), nameof(PlayerInventory.ServerTryStoreHeldItem))]
-        public static void ServerTryStoreHeldItem_Postfix()
+        public static void ServerTryStoreHeldItem_Postfix(Item __state)
         {
-            StackManager.ItemBeingStored = null;
+            StackManager.ItemBeingStored = __state;
         }
 
         [HarmonyPrefix]
         [HarmonyPatch(typeof(PlayerInventory), nameof(PlayerInventory.ResolveHeldItemReplacement))]
-        public static void ResolveHeldItemReplacement_Prefix(Item item)
+        public static void ResolveHeldItemReplacement_Prefix(Item item, out Item __state)
         {
+            __state = StackManager.ItemBeingStored;
             StackManager.ItemBeingStored = item;
         }
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(PlayerInventory), nameof(PlayerInventory.ResolveHeldItemReplacement))]
-        public static void ResolveHeldItemReplacement_Postfix()
+        public static void ResolveHeldItemReplacement_Postfix(Item __state)
         {
-            StackManager.ItemBeingStored = null;
+            StackManager.ItemBeingStored = __state;
         }
 
         [HarmonyPrefix]
         [HarmonyPatch(typeof(PlayerInventory), nameof(PlayerInventory.LocalTrySelectSlot))]
-        public static void LocalTrySelectSlot_Prefix(PlayerInventory __instance)
+        public static void LocalTrySelectSlot_Prefix(PlayerInventory __instance, out Item __state)
         {
-            StackManager.ItemBeingStored = __instance._player.Holding.HeldItem;
+            __state = StackManager.ItemBeingStored;
+            StackManager.ItemBeingStored = __instance._player?.Holding?.HeldItem;
         }
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(PlayerInventory), nameof(PlayerInventory.LocalTrySelectSlot))]
-        public static void LocalTrySelectSlot_Postfix()
+        public static void LocalTrySelectSlot_Postfix(Item __state)
         {
-            StackManager.ItemBeingStored = null;
+            StackManager.ItemBeingStored = __state;
         }
 
         [HarmonyPrefix]
         [HarmonyPatch(typeof(PlayerInventory), nameof(PlayerInventory.UpdateHeldItem))]
-        public static void UpdateHeldItem_Prefix(PlayerInventory __instance)
+        public static void UpdateHeldItem_Prefix(PlayerInventory __instance, out Item __state)
         {
-            StackManager.ItemBeingStored = __instance._player.Holding.HeldItem;
+            __state = StackManager.ItemBeingStored;
+            StackManager.ItemBeingStored = __instance._player?.Holding?.HeldItem;
         }
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(PlayerInventory), nameof(PlayerInventory.UpdateHeldItem))]
-        public static void UpdateHeldItem_Postfix()
+        public static void UpdateHeldItem_Postfix(Item __state)
         {
-            StackManager.ItemBeingStored = null;
+            StackManager.ItemBeingStored = __state;
         }
 
         [HarmonyPrefix]
@@ -435,14 +478,27 @@ namespace StackableItems
             if (!__instance.IsServerInitialized || item == null)
                 return true;
 
-            Item oldItem = __instance._items[index];
+            if (!__instance._items.ContainsKey(index))
+                return true;
 
-            __instance._items[index] = item;
+            if (item.SyncedHolder != __instance._player)
+                return true;
+
+            foreach (var kvp in __instance._items)
+            {
+                if (kvp.Value == item)
+                    return false;
+            }
+
+            Item oldItem = __instance._items[index];
 
             if (oldItem != null && oldItem != item)
             {
-                StackManager.PushServerStack(__instance, index, oldItem);
+                if (!StackManager.PushServerStack(__instance, index, oldItem))
+                    return false;
             }
+
+            __instance._items[index] = item;
 
             return false;
         }
@@ -524,8 +580,10 @@ namespace StackableItems
 
         [HarmonyPrefix]
         [HarmonyPatch(typeof(PlayerInventory), nameof(PlayerInventory.RemoveItem))]
-        public static bool RemoveItem(PlayerInventory __instance, Item item)
+        public static bool RemoveItem(PlayerInventory __instance, Item item, out int __state)
         {
+            __state = -1;
+
             if (!__instance.IsServerInitialized || item == null)
                 return true;
 
@@ -547,6 +605,7 @@ namespace StackableItems
                 if (nextItem != null)
                 {
                     __instance._items[foundKey] = nextItem;
+                    __state = foundKey;
                     return false;
                 }
             }
@@ -555,22 +614,50 @@ namespace StackableItems
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(PlayerInventory), nameof(PlayerInventory.RemoveItem))]
-        public static void RemoveItem_Postfix(PlayerInventory __instance, Item item)
+        public static void RemoveItem_Postfix(PlayerInventory __instance, int __state)
         {
-            if (StackManager.LastRemovedSlot != 255 && __instance.Owner.IsLocalClient)
-            {
-                __instance.ApplySlot(StackManager.LastRemovedSlot);
-                StackManager.LastRemovedSlot = 255;
-            }
+            StackManager.LastRemovedSlot = 255;
+
+            if (__state < 0)
+                return;
+
+            if (__instance.Owner == null || !__instance.Owner.IsLocalClient)
+                return;
+
+            if (__instance._localCurSlot == __state)
+                return;
+
+            __instance.ApplySlot(__state);
         }
 
         [HarmonyPostfix]
         [HarmonyPatch(typeof(Item), nameof(Item.DestroyByEating))]
         public static void EatItem(Item __instance)
         {
-            var inventory = __instance.LastHolder?.Inventory;
-            if (inventory != null)
-                inventory.ApplySlot(inventory._localCurSlot);
+            Player holder = __instance.LastHolder;
+            if (holder == null || Player.LocalPlayer != holder)
+                return;
+
+            PlayerInventory inventory = holder.Inventory;
+            if (inventory == null || inventory.Owner == null || !inventory.Owner.IsLocalClient)
+                return;
+
+            inventory.ApplySlot(inventory._localCurSlot);
+        }
+
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(Item), nameof(Item.SetSyncedHolder))]
+        public static void Item_SetSyncedHolder_Postfix(Item __instance)
+        {
+            if (__instance.SyncedHolder == null)
+                StackManager.Forget(__instance);
+        }
+
+        [HarmonyPostfix]
+        [HarmonyPatch(typeof(Item), nameof(Item.OnStopServer))]
+        public static void Item_OnStopServer_Postfix(Item __instance)
+        {
+            StackManager.Forget(__instance);
         }
 
         [HarmonyPrefix]
@@ -588,7 +675,10 @@ namespace StackableItems
                 Vector3 zero = Vector3.zero;
                 foreach (var kvp in stacks)
                 {
-                    foreach (var hiddenItem in kvp.Value)
+                    Item[] leaving = kvp.Value.ToArray();
+                    kvp.Value.Clear();
+
+                    foreach (var hiddenItem in leaving)
                     {
                         if (hiddenItem != null)
                         {
@@ -608,7 +698,6 @@ namespace StackableItems
                             zero += Vector3.up * hiddenItem.ModelHeight;
                         }
                     }
-                    kvp.Value.Clear();
                 }
             }
         }
