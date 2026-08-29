@@ -37,12 +37,18 @@ This **should** work in multiplayer, if not please find me in the [Modding Disco
 - Dropping item re-equips it
 - Saving and Backup support
 
+## Credits
+
+Credits to:
+- @atomictyler ([AtomicStudio](https://atomictyler.dev/?p=projects))
+- @originalh1ccup ([hiccup](https://github.com/hiccup444?tab=repositories))
+
 ## PLEASE READ!!
 
 I recommend making a backup of your save with [SaveBackups](https://thunderstore.io/c/how-to-fish/p/hiccup/SaveBackups/) before running with this.
 I am unsure how unstable this is in multiplayer since I couldn't test, but it works in single-player fine.
 
-In verson 0.1.1 and onwards SaveBackups now has compatibility with this mod.
+![Stacked Weapons - 0.1.3+](https://notice-badges.atomictyler.dev/api/notice?type=warning&title=Stacked+Weapons+-+0.1.3%2B&message=If+you+had+a+stacked+weapon+before+0.1.3%2C+the+item+will+now+go+into+an+open+slot+you+have%2C+if+the+slot+is+empty%2C+it+is+possible+to+**lose+the+item+permanently.**+Luckily%2C+because+of+a+new+game+update+drop+your+weapons+before+updating.&width=640&radius=8)
 
 ## Reporting bugs and questions
 

@@ -45,7 +45,7 @@ namespace StackableItems
                     "stackableitems",
                     "Stackable Items",
                     saveName => Path.Combine(
-                        Paths.ConfigPath, "StackableItems", "Saves", Sanitise(saveName) + ".json"
+                        Paths.ConfigPath, "StackableItems", "Saves", SaveBackups.Companions.SanitiseSaveName(saveName) + ".json"
                     )
                 );
             }
@@ -55,25 +55,11 @@ namespace StackableItems
             }
         }
 
-        public bool ModInstalled(string GUID)
+        public static bool ModInstalled(string GUID)
         {
             bool enabled = Chainloader.PluginInfos.ContainsKey(GUID);
             if (!enabled) Log.LogWarning($"{GUID} is not enabled.");
             return enabled;
-        }
-
-        private static string Sanitise(string id)
-        {
-            char[] array = id.ToCharArray();
-            for (int i = 0; i < array.Length; i++)
-            {
-                if (!char.IsLetterOrDigit(array[i]))
-                {
-                    array[i] = '_';
-                }
-            }
-
-            return new string(array).ToLowerInvariant();
         }
     }
 
@@ -665,6 +651,9 @@ namespace StackableItems
         public static void ServerDropAll(PlayerInventory __instance, Vector3 pos, Quaternion rot)
         {
             if (!__instance.IsServerInitialized)
+                return;
+
+            if (Plugin.ModInstalled("kvasir.keepinventory"))
                 return;
 
             ulong steamID = __instance._player?.SteamID ?? 0;
