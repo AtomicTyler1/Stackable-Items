@@ -4,7 +4,7 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>com.atomic.stackableitems</AssemblyName>
     <AssemblyTitle>StackableItems</AssemblyTitle>
-    <Version>0.1.4</Version>
+    <Version>0.1.5</Version>
   </PropertyGroup>
 
   <!-- ThunderPipe properties -->
@@ -30,7 +30,7 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="SaveBackups">
-      <HintPath>..\..\..\..\..\..\AppData\Roaming\r2modmanPlus-local\HowToFish\profiles\Default\BepInEx\plugins\hiccup-SaveBackups\SaveBackups.dll</HintPath>
+      <HintPath>D:\SteamLibrary\steamapps\common\How to Fish\How to Fish\BepInEx\plugins\SaveBackups.dll</HintPath>
     </Reference>
   </ItemGroup>
 

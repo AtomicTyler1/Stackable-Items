@@ -1,3 +1,7 @@
+# v0.1.5 - Fixes
+
+- Fixed for the latest game update.
+
 # v0.1.4 - Fixes and Compatibility
 
 - Now has Compatibility with [KeepInventory](https://thunderstore.io/c/how-to-fish/p/WhitetailStudios/KeepInventory/) by [WhitetailStudios](https://thunderstore.io/c/how-to-fish/p/WhitetailStudios/)

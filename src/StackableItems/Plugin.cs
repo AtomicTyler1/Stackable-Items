@@ -513,7 +513,7 @@ namespace StackableItems
                 if (!spawnable)
                     continue;
 
-                Item clone = ItemManager.Instance.SpawnNewItem(spawnable, SpawnManager.PlayerSpawnPos, Quaternion.identity);
+                Item clone = ItemManager.Instance.SpawnNewItem(spawnable, SpawnManager._mainPlayerSpawnPoint.position, Quaternion.identity);
                 StackSaveManager.SetStats(clone, savedItem);
 
                 if (clone.Creature != null)
